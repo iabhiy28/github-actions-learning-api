@@ -1,4 +1,4 @@
-name: Hello GitHub Actions
+name: Show system info
 
 on:
   push:
