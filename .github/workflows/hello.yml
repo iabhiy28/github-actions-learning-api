@@ -58,11 +58,11 @@ jobs:
       # NOTE: The step below is commented out because it WOULD
       # fail the entire workflow. Uncomment to see failure behavior.
       
-      - name: Failing command (exit code 1)
-        run: |
-          echo "About to fail..."
-          exit 1
-          echo "This line NEVER runs"
+      # - name: Failing command (exit code 1)
+      #   run: |
+      #     echo "About to fail..."
+      #     exit 1
+      #     echo "This line NEVER runs"
 
       # --- Specifying the shell explicitly ---
       - name: Run with bash (default on Linux)
