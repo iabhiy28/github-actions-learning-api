@@ -1,21 +1,80 @@
-name: Show system info
+name: Learn Shell Commands
 
 on:
   push:
 
 jobs:
-  hello:
+  shell-basics:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Say hello
-        run: echo "Hello GitHub Actions!"
+      # --- Single-line commands ---
+      - name: Check Node version
+        run: node --version
 
-      - name: Print current date
-        run: date
+      - name: Check npm version
+        run: npm --version
 
-      - name: List directory contents
-        run: ls -la
-        
-      - name: show system info
-        run: uname -a
+      - name: Print a message
+        run: echo "Running CI on GitHub Actions!"
+
+      # --- Multi-line commands (using pipe |) ---
+      - name: Print system information
+        run: |
+          echo "=== System Info ==="
+          echo "Hostname: $(hostname)"
+          echo "OS: $(uname -s)"
+          echo "Architecture: $(uname -m)"
+          echo "User: $(whoami)"
+          echo "Working Directory: $(pwd)"
+
+      # --- Multi-line command (single logical command using >) ---
+      - name: Print long message
+        run: >
+          echo "This is a very long message
+          that spans multiple lines in the YAML file
+          but is treated as a single line when executed"
+
+      # --- Using environment variables in commands ---
+      - name: Show runner environment
+        run: |
+          echo "Home directory: $HOME"
+          echo "Shell: $SHELL"
+          echo "Path: $PATH"
+
+      # --- Creating and reading a file ---
+      - name: Create a file
+        run: echo "Hello from Step 7" > myfile.txt
+
+      - name: Read the file
+        run: cat myfile.txt
+
+      # --- Demonstrating exit codes ---
+      - name: Successful command (exit code 0)
+        run: |
+          echo "This command succeeds"
+          echo "Exit code will be 0 (success)"
+
+      # NOTE: The step below is commented out because it WOULD
+      # fail the entire workflow. Uncomment to see failure behavior.
+      
+      - name: Failing command (exit code 1)
+        run: |
+          echo "About to fail..."
+          exit 1
+          echo "This line NEVER runs"
+
+      # --- Specifying the shell explicitly ---
+      - name: Run with bash (default on Linux)
+        shell: bash
+        run: |
+          echo "Running in: $BASH_VERSION"
+          if [[ 1 -eq 1 ]]; then
+            echo "Bash conditional works!"
+          fi
+
+      - name: Run with sh (POSIX shell)
+        shell: sh
+        run: |
+          echo "Running in sh (POSIX shell)"
+          echo "Less features than bash, but more portable"
