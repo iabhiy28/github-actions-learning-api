@@ -1,8 +1,9 @@
 name: CI Pipeline
 
-# Trigger: run this workflow on every push (to any branch)
+# Trigger: run on every push AND on every pull request
 on:
   push:
+  pull_request:
 
 jobs:
   # Job name: "test"
