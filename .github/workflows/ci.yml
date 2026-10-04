@@ -1,0 +1,41 @@
+name: CI Pipeline
+
+# Trigger: run this workflow on every push (to any branch)
+on:
+  push:
+
+jobs:
+  # Job name: "test"
+  test:
+    # The type of machine (runner) to run this job on
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository code onto the runner
+      # Without this, the runner has NO access to our files
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js on the runner
+      # The runner starts with NOTHING — we must set up Node ourselves
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Step 3: Install project dependencies
+      # We use "npm ci" instead of "npm install" in CI environments
+      # npm ci: reads package-lock.json exactly — fast, reproducible, clean
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Node version
+        run: node --version
+      
+      - name: list files
+        run: ls -a
+
+      # Step 4: Run the test suite
+      # If any test fails, this step exits with code 1 → job fails
+      - name: Run tests
+        run: npm test
