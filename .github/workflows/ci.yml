@@ -3,7 +3,9 @@ name: CI Pipeline
 # Trigger: run on every push AND on every pull request
 on:
   push:
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 jobs:
   # Job name: "test"
