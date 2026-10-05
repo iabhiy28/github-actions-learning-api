@@ -1,11 +1,21 @@
 name: CI Pipeline
 
-# Trigger: run on every push AND on every pull request
+# Trigger: run on push/PR to main, but ONLY when source code changes
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   # Job name: "test"
