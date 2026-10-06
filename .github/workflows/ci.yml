@@ -17,38 +17,63 @@ on:
       - "package.json"
       - "package-lock.json"
 
+# ─── LEVEL 7: WORKFLOW-LEVEL environment variables ────────────────────────────
+# Available to ALL jobs and ALL steps in this entire workflow
+env:
+  NODE_ENV: test          # tells Node.js we are in a test environment
+  APP_NAME: github-actions-learning-api
+
 jobs:
-  # Job name: "test"
   test:
-    # The type of machine (runner) to run this job on
     runs-on: ubuntu-latest
 
+    # ─── JOB-LEVEL environment variables ──────────────────────────────────────
+    # Available to ALL steps in this job only
+    # If same name as workflow-level → job-level WINS for this job
+    env:
+      LOG_LEVEL: debug        # only meaningful inside this job
+      WORKING_DIR: .          # the directory our app lives in
+
     steps:
-      # Step 1: Check out the repository code onto the runner
-      # Without this, the runner has NO access to our files
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Install Node.js on the runner
-      # The runner starts with NOTHING — we must set up Node ourselves
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Step 3: Install project dependencies
-      # We use "npm ci" instead of "npm install" in CI environments
-      # npm ci: reads package-lock.json exactly — fast, reproducible, clean
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Node version
         run: node --version
-      
-      - name: list files
+
+      - name: List files
         run: ls -a
 
-      # Step 4: Run the test suite
-      # If any test fails, this step exits with code 1 → job fails
+      # Print all environment variables to see what is available
+      - name: Print environment info
+        run: |
+          echo "=== Workflow-level vars ==="
+          echo "NODE_ENV:   $NODE_ENV"
+          echo "APP_NAME:   $APP_NAME"
+          echo ""
+          echo "=== Job-level vars ==="
+          echo "LOG_LEVEL:  $LOG_LEVEL"
+          echo "WORKING_DIR: $WORKING_DIR"
+          echo ""
+          echo "=== Runner built-in vars ==="
+          echo "CI:         $CI"
+          echo "RUNNER_OS:  $RUNNER_OS"
+
+      # Step-level env: only exists for THIS step
+      # Overrides any same-named variable from job or workflow level
       - name: Run tests
-        run: npm test
+        env:
+          # This step-level var is only visible inside "Run tests"
+          TEST_REPORTER: verbose
+        run: |
+          echo "Running tests with reporter: $TEST_REPORTER"
+          echo "NODE_ENV is still: $NODE_ENV"
+          npm test
