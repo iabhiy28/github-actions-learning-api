@@ -17,22 +17,18 @@ on:
       - "package.json"
       - "package-lock.json"
 
-# ─── LEVEL 7: WORKFLOW-LEVEL environment variables ────────────────────────────
-# Available to ALL jobs and ALL steps in this entire workflow
+# WORKFLOW-LEVEL environment variables
 env:
-  NODE_ENV: test          # tells Node.js we are in a test environment
+  NODE_ENV: test
   APP_NAME: github-actions-learning-api
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    # ─── JOB-LEVEL environment variables ──────────────────────────────────────
-    # Available to ALL steps in this job only
-    # If same name as workflow-level → job-level WINS for this job
+    # JOB-LEVEL environment variables
     env:
-      LOG_LEVEL: debug        # only meaningful inside this job
-      WORKING_DIR: .          # the directory our app lives in
+      LOG_LEVEL: debug
 
     steps:
       - name: Checkout repository
@@ -46,34 +42,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Node version
-        run: node --version
+      # ── LEVEL 9: Conditions ──────────────────────────────────────────────────
 
-      - name: List files
-        run: ls -a
-
-      # Print all environment variables to see what is available
-      - name: Print environment info
+      # Runs ONLY on pull_request events — never on direct push
+      - name: Show PR info
+        if: github.event_name == 'pull_request'
         run: |
-          echo "=== Workflow-level vars ==="
-          echo "NODE_ENV:   $NODE_ENV"
-          echo "APP_NAME:   $APP_NAME"
-          echo ""
-          echo "=== Job-level vars ==="
-          echo "LOG_LEVEL:  $LOG_LEVEL"
-          echo "WORKING_DIR: $WORKING_DIR"
-          echo ""
-          echo "=== Runner built-in vars ==="
-          echo "CI:         $CI"
-          echo "RUNNER_OS:  $RUNNER_OS"
+          echo "This is a PR run"
+          echo "Actor: ${{ github.actor }}"
+          echo "SHA:   ${{ github.sha }}"
 
-      # Step-level env: only exists for THIS step
-      # Overrides any same-named variable from job or workflow level
+      # Runs ONLY on direct push to main — never on PRs
+      - name: Show push info
+        if: github.event_name == 'push'
+        run: |
+          echo "This is a direct push to main"
+          echo "Commit: ${{ github.sha }}"
+
+      # Always runs — success or failure
+      - name: Print run context
+        if: always()
+        run: |
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Run #:    ${{ github.run_number }}"
+          echo "Branch:   ${{ github.ref_name }}"
+
+      # Run tests — the main step
       - name: Run tests
+        id: tests
         env:
-          # This step-level var is only visible inside "Run tests"
           TEST_REPORTER: verbose
+        run: npm test
+
+      # Runs ONLY if tests passed
+      - name: Tests passed — ready to merge
+        if: success()
+        run: echo "✅ All tests passed. Safe to merge!"
+
+      # Runs ONLY if tests failed
+      - name: Tests failed — notify
+        if: failure()
         run: |
-          echo "Running tests with reporter: $TEST_REPORTER"
-          echo "NODE_ENV is still: $NODE_ENV"
-          npm test
+          echo "❌ Tests failed!"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Check the logs above for details."
