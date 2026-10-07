@@ -1,0 +1,59 @@
+name: Explore Contexts
+
+# Trigger manually from GitHub UI (no push needed)
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  print-contexts:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── github context ──────────────────────────────────────────────
+      - name: Print github context
+        run: |
+          echo "=== github context ==="
+          echo "actor:        ${{ github.actor }}"
+          echo "repository:   ${{ github.repository }}"
+          echo "ref:          ${{ github.ref }}"
+          echo "ref_name:     ${{ github.ref_name }}"
+          echo "sha:          ${{ github.sha }}"
+          echo "event_name:   ${{ github.event_name }}"
+          echo "workflow:     ${{ github.workflow }}"
+          echo "run_id:       ${{ github.run_id }}"
+          echo "run_number:   ${{ github.run_number }}"
+          echo "job:          ${{ github.job }}"
+          echo "workspace:    ${{ github.workspace }}"
+
+      # ── runner context ──────────────────────────────────────────────
+      - name: Print runner context
+        run: |
+          echo "=== runner context ==="
+          echo "os:           ${{ runner.os }}"
+          echo "arch:         ${{ runner.arch }}"
+          echo "name:         ${{ runner.name }}"
+          echo "temp:         ${{ runner.temp }}"
+          echo "tool_cache:   ${{ runner.tool_cache }}"
+
+      # ── env context ─────────────────────────────────────────────────
+      - name: Print env context
+        env:
+          APP_NAME: github-actions-learning-api
+          NODE_ENV: test
+        run: |
+          echo "=== env context ==="
+          echo "APP_NAME:     ${{ env.APP_NAME }}"
+          echo "NODE_ENV:     ${{ env.NODE_ENV }}"
+
+      # ── Using context in step name ───────────────────────────────────
+      - name: "Running on branch: ${{ github.ref_name }}"
+        run: echo "This step name used a context value!"
+
+      # ── Using context to build a dynamic value ───────────────────────
+      - name: Show dynamic info
+        run: |
+          echo "Run #${{ github.run_number }} of '${{ github.workflow }}'"
+          echo "Triggered by: ${{ github.actor }} via ${{ github.event_name }}"
+          echo "Commit: ${{ github.sha }}"
