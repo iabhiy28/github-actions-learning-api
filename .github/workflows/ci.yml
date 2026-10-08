@@ -1,6 +1,5 @@
 name: CI Pipeline
 
-# Trigger: run on push/PR to main, but ONLY when source code changes
 on:
   push:
     branches: [ "main" ]
@@ -17,16 +16,27 @@ on:
       - "package.json"
       - "package-lock.json"
 
-# WORKFLOW-LEVEL environment variables
 env:
   NODE_ENV: test
   APP_NAME: github-actions-learning-api
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+# ── LEVEL 10: Multiple jobs with needs: ─────────────────────────────────────
+#
+# Execution order:
+#
+#          ┌── test ──┐
+# push ───►│          ├──► build
+#          └── lint ──┘
+#
+# test and lint run IN PARALLEL
+# build runs only after BOTH test and lint pass
 
-    # JOB-LEVEL environment variables
+jobs:
+
+  # ── Job 1: Run tests ────────────────────────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
     env:
       LOG_LEVEL: debug
 
@@ -42,48 +52,66 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ── LEVEL 9: Conditions ──────────────────────────────────────────────────
-
-      # Runs ONLY on pull_request events — never on direct push
-      - name: Show PR info
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "This is a PR run"
-          echo "Actor: ${{ github.actor }}"
-          echo "SHA:   ${{ github.sha }}"
-
-      # Runs ONLY on direct push to main — never on PRs
-      - name: Show push info
-        if: github.event_name == 'push'
-        run: |
-          echo "This is a direct push to main"
-          echo "Commit: ${{ github.sha }}"
-
-      # Always runs — success or failure
-      - name: Print run context
-        if: always()
-        run: |
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Run #:    ${{ github.run_number }}"
-          echo "Branch:   ${{ github.ref_name }}"
-
-      # Run tests — the main step
       - name: Run tests
         id: tests
-        env:
-          TEST_REPORTER: verbose
         run: npm test
 
-      # Runs ONLY if tests passed
-      - name: Tests passed — ready to merge
+      - name: Tests passed
         if: success()
-        run: echo "✅ All tests passed. Safe to merge!"
+        run: echo "✅ All tests passed!"
 
-      # Runs ONLY if tests failed
-      - name: Tests failed — notify
+      - name: Tests failed
         if: failure()
+        run: echo "❌ Tests failed! Actor ${{ github.actor }} on ${{ github.ref_name }}"
+
+  # ── Job 2: Lint ─────────────────────────────────────────────────────────────
+  # Runs IN PARALLEL with the test job (no needs: → starts immediately)
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      # We don't have a real linter configured yet
+      # This simulates what a lint step looks like
+      - name: Run lint (simulated)
         run: |
-          echo "❌ Tests failed!"
+          echo "Running lint checks..."
+          echo "Checking src/ for issues..."
+          echo "✅ No lint errors found"
+
+  # ── Job 3: Build ────────────────────────────────────────────────────────────
+  # Runs ONLY after BOTH test and lint succeed
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint]          # ← depends on test AND lint
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: |
+          echo "Building ${{ env.APP_NAME }}..."
           echo "Triggered by: ${{ github.actor }}"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Check the logs above for details."
+          echo "Commit: ${{ github.sha }}"
+          echo "✅ Build complete"
