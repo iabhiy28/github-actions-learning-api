@@ -20,23 +20,32 @@ env:
   NODE_ENV: test
   APP_NAME: github-actions-learning-api
 
-# ── LEVEL 10: Multiple jobs with needs: ─────────────────────────────────────
+# ── Pipeline DAG ──────────────────────────────────────────────────────────────
 #
-# Execution order:
+#                   ┌── test (Node 20) ──┐
+#                   ├── test (Node 22) ──┤
+# push ────────────►├── test (Node 24) ──┼──► build
+#                   │                   │
+#                   └── lint ───────────┘
 #
-#          ┌── test ──┐
-# push ───►│          ├──► build
-#          └── lint ──┘
-#
-# test and lint run IN PARALLEL
-# build runs only after BOTH test and lint pass
+# Matrix creates 3 test jobs in parallel (one per Node version)
+# build waits for ALL matrix jobs + lint to pass
 
 jobs:
 
-  # ── Job 1: Run tests ────────────────────────────────────────────────────────
+  # ── Job 1: test (matrix) ──────────────────────────────────────────────────
+  # LEVEL 11: strategy.matrix creates multiple parallel jobs from one definition
   test:
-    name: Run Tests
+    name: "Test / Node ${{ matrix.node-version }}"
     runs-on: ubuntu-latest
+
+    strategy:
+      # fail-fast: false → run ALL Node versions even if one fails
+      # This lets us see the full compatibility picture
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
+
     env:
       LOG_LEVEL: debug
 
@@ -44,13 +53,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      # Use the matrix variable to install the correct Node version
+      - name: "Setup Node.js ${{ matrix.node-version }}"
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm ci
+
+      # Print which Node version we are currently testing
+      - name: Show Node version
+        run: |
+          echo "Testing on Node.js $(node --version)"
+          echo "npm version: $(npm --version)"
 
       - name: Run tests
         id: tests
@@ -58,14 +74,14 @@ jobs:
 
       - name: Tests passed
         if: success()
-        run: echo "✅ All tests passed!"
+        run: echo "✅ All tests passed on Node ${{ matrix.node-version }}!"
 
       - name: Tests failed
         if: failure()
-        run: echo "❌ Tests failed! Actor ${{ github.actor }} on ${{ github.ref_name }}"
+        run: echo "❌ Tests failed on Node ${{ matrix.node-version }}!"
 
-  # ── Job 2: Lint ─────────────────────────────────────────────────────────────
-  # Runs IN PARALLEL with the test job (no needs: → starts immediately)
+  # ── Job 2: lint ────────────────────────────────────────────────────────────
+  # Single job — no matrix needed for lint
   lint:
     name: Lint Check
     runs-on: ubuntu-latest
@@ -82,20 +98,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # We don't have a real linter configured yet
-      # This simulates what a lint step looks like
       - name: Run lint (simulated)
         run: |
           echo "Running lint checks..."
           echo "Checking src/ for issues..."
           echo "✅ No lint errors found"
 
-  # ── Job 3: Build ────────────────────────────────────────────────────────────
-  # Runs ONLY after BOTH test and lint succeed
+  # ── Job 3: build ───────────────────────────────────────────────────────────
+  # needs: test → waits for ALL matrix jobs (all 3 Node versions) to pass
+  # needs: lint → waits for lint to pass
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [test, lint]          # ← depends on test AND lint
+    needs: [test, lint]
 
     steps:
       - name: Checkout repository
@@ -114,4 +129,4 @@ jobs:
           echo "Building ${{ env.APP_NAME }}..."
           echo "Triggered by: ${{ github.actor }}"
           echo "Commit: ${{ github.sha }}"
-          echo "✅ Build complete"
+          echo "✅ Build complete — all Node versions passed!"
