@@ -54,10 +54,14 @@ jobs:
         uses: actions/checkout@v4
 
       # Use the matrix variable to install the correct Node version
+      # LEVEL 12: cache: 'npm' enables built-in caching via package-lock.json hash
+      # Cache HIT  → restores node_modules (~3s instead of ~30s)
+      # Cache MISS → runs npm ci and stores the result for next time
       - name: "Setup Node.js ${{ matrix.node-version }}"
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: 'npm'           # ← enables npm cache (uses package-lock.json as key)
 
       - name: Install dependencies
         run: npm ci
@@ -94,6 +98,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'           # ← caching enabled here too
 
       - name: Install dependencies
         run: npm ci
@@ -120,6 +125,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'           # ← caching enabled here too
 
       - name: Install dependencies
         run: npm ci
