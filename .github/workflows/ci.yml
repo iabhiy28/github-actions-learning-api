@@ -26,13 +26,13 @@ env:
   NODE_ENV: test
   APP_NAME: github-actions-learning-api
 
-# ── Pipeline DAG (Level 13 updated) ───────────────────────────────────────────
+# ── Pipeline DAG (Level 16 updated) ───────────────────────────────────────────
 #
 #                   ┌── test (Node 20) ──┐
 #                   ├── test (Node 22) ──┤
-# push ────────────►├── test (Node 24) ──┼──► build ──► deploy-check
-#                   │                   │    (uploads   (downloads
-#                   └── lint ───────────┘    artifact)   artifact)
+# push ────────────►├── test (Node 24) ──┼──► build ──► deploy-staging ──► deploy-production
+#                   │                   │    (uploads   (env: staging)     (env: production)
+#                   └── lint ───────────┘    artifact)
 
 jobs:
 
@@ -160,33 +160,63 @@ jobs:
           path: dist/
           retention-days: 7
 
-  # ── Job 4: deploy-check ─────────────────────────────────────────────────────
-  # LEVEL 13: demonstrates downloading an artifact from a previous job
-  # In a real CD pipeline, this would be the actual deployment job
-  deploy-check:
-    name: Deploy Check (Artifact Demo)
+  # ── Job 4: deploy-staging ───────────────────────────────────────────────────
+  # LEVEL 16: Environment configuration (staging)
+  # - Tracks deployments in the GitHub "Environments" tab
+  # - Exposes staging-scoped secrets & variables
+  # - Attaches a live environment URL to the workflow run
+  deploy-staging:
+    name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: build                 # must wait for build to upload the artifact
+    needs: build
+    # Only deploy when code is pushed to main (not on PR checks)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    environment:
+      name: staging
+      url: https://staging.learning-api.example.com
 
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: build-output     # must match the upload name exactly
-          path: ./release/       # where to place the downloaded files
+          name: build-output
+          path: ./release/
 
-      # Verify the artifact was downloaded correctly
-      - name: Verify artifact contents
+      - name: Deploy to staging server
         run: |
-          echo "=== Downloaded artifact contents ==="
+          echo "🚀 Deploying ${{ env.APP_NAME }} to STAGING..."
+          echo "Target URL: https://staging.learning-api.example.com"
+          echo "Artifact contents:"
           ls -la ./release/
-          echo ""
-          echo "=== Build info ==="
+          echo "Build info:"
           cat ./release/build-info.json
+          echo "✅ Staging deployment successful!"
 
-      # Simulate a deployment step
-      - name: Simulate deployment
+  # ── Job 5: deploy-production ────────────────────────────────────────────────
+  # LEVEL 16: Environment configuration (production)
+  # In repository Settings -> Environments -> production, you can enforce:
+  # - Required Reviewers (Manual approval gate before this job runs!)
+  # - Wait Timer (Delay before deployment starts)
+  # - Deployment Branch restriction (e.g., only 'main')
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+
+    environment:
+      name: production
+      url: https://api.example.com
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: ./release/
+
+      - name: Deploy to production server
         run: |
-          echo "🚀 Deploying ${{ env.APP_NAME }}..."
-          echo "Using artifact from: build job (run #${{ github.run_number }})"
-          echo "✅ Deployment simulation complete"
+          echo "🌟 Deploying ${{ env.APP_NAME }} to PRODUCTION..."
+          echo "Target URL: https://api.example.com"
+          echo "✅ Production deployment successful!"
