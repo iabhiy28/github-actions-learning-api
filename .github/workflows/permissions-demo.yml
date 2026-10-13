@@ -1,0 +1,65 @@
+name: Permissions Demo
+
+# Trigger manually to inspect permissions behaviour
+on:
+  workflow_dispatch:
+
+# ── Workflow-level permissions ─────────────────────────────────────────────
+# Sets the baseline for ALL jobs.
+# Any scope not listed here defaults to 'none'.
+permissions:
+  contents: read
+
+jobs:
+
+  # ── Job 1: Read-only job ──────────────────────────────────────────────────
+  # Inherits workflow-level permissions: contents: read (everything else: none)
+  read-only-job:
+    name: Read-Only Job (Inherits contents:read)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Demonstrate read-only capabilities
+        run: |
+          echo "=== Read-Only Job Execution ==="
+          echo "✅ Repository checkout succeeded because 'contents: read' is enabled."
+          echo "Commit log sample:"
+          git log -n 1 --oneline
+
+      - name: Explain permission boundaries
+        run: |
+          echo "🔒 What this job CANNOT do:"
+          echo "❌ Cannot push commits (contents: write required)"
+          echo "❌ Cannot post PR comments (pull-requests: write required)"
+          echo "❌ Cannot close issues (issues: write required)"
+          echo "❌ Cannot publish packages (packages: write required)"
+
+  # ── Job 2: Elevated permissions job ───────────────────────────────────────
+  # Overrides workflow-level permissions specifically for this job.
+  # Demonstrates how to grant write access only where strictly necessary.
+  elevated-job:
+    name: Elevated Job (Overrides permissions)
+    runs-on: ubuntu-latest
+    needs: read-only-job
+
+    # Job-level override: adds issues & pull-requests permissions
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Demonstrate elevated permissions scope
+        run: |
+          echo "=== Elevated Job Execution ==="
+          echo "This job has explicit job-level permissions:"
+          echo "  - contents: read"
+          echo "  - issues: write"
+          echo "  - pull-requests: write"
+          echo ""
+          echo "If this job ran a bot action (e.g. actions/github-script),"
+          echo "it could add labels or post comments to PRs/issues."
+          echo "Meanwhile, 'read-only-job' remains completely isolated and unable to do so."

@@ -16,6 +16,12 @@ on:
       - "package.json"
       - "package-lock.json"
 
+# ── LEVEL 15: Least Privilege Permissions ─────────────────────────────────────
+# By default, lock down GITHUB_TOKEN to read-only access for repository code.
+# Unspecified scopes (issues, pull-requests, packages, etc.) automatically drop to 'none'.
+permissions:
+  contents: read
+
 env:
   NODE_ENV: test
   APP_NAME: github-actions-learning-api
