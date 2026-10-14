@@ -1,0 +1,48 @@
+name: "Setup Node Application"
+description: "Composite Action: Checks out repository, installs Node.js with npm caching, and installs dependencies via npm ci"
+
+# Inputs passed from caller step (optional or required)
+inputs:
+  node-version:
+    description: "The Node.js version to setup"
+    required: false
+    default: "20"
+  cache-dependency-path:
+    description: "Path to package-lock.json for caching"
+    required: false
+    default: "package-lock.json"
+
+# Outputs returned to caller step
+outputs:
+  installed-node-version:
+    description: "The actual node version installed"
+    value: ${{ steps.get-version.outputs.version }}
+
+# LEVEL 18: 'runs.using: composite' identifies this as a Composite Action
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js runtime
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: "npm"
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Install npm dependencies
+      # IMPORTANT GOTCHA: In composite actions, 'shell:' is MANDATORY for all run steps!
+      shell: bash
+      run: |
+        echo "Installing dependencies with npm ci..."
+        npm ci
+
+    - name: Record installed Node version
+      id: get-version
+      shell: bash
+      run: |
+        NODE_VER=$(node -v)
+        echo "version=$NODE_VER" >> "$GITHUB_OUTPUT"
+        echo "Installed Node version: $NODE_VER"

@@ -1,0 +1,30 @@
+name: Composite Action Demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-composite-action:
+    name: Test Custom Composite Action
+    runs-on: ubuntu-latest
+
+    steps:
+      # LEVEL 18: Instead of writing checkout + setup-node + npm ci manually (15 lines),
+      # we call our local custom composite action in ONE step!
+      - name: Initialize Environment via Composite Action
+        id: setup
+        uses: ./.github/actions/setup-node-app
+        with:
+          node-version: "20"
+
+      - name: Verify Environment and Read Composite Action Output
+        run: |
+          echo "============================================="
+          echo "🎉 Composite Action finished successfully!"
+          echo "Installed Node Version Output: ${{ steps.setup.outputs.installed-node-version }}"
+          echo "Current working directory files:"
+          ls -la
+          echo "============================================="
+
+      - name: Run Test Suite
+        run: npm test
