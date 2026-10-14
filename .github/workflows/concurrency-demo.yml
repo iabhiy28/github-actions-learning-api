@@ -1,0 +1,38 @@
+name: Concurrency Demo
+
+# Trigger manually twice in quick succession to see the first run get cancelled!
+on:
+  workflow_dispatch:
+
+# LEVEL 19: Concurrency configuration
+# - 'group' defines the unique lock key. All runs with the same group share this slot.
+# - 'cancel-in-progress: true' immediately cancels any older running run in this group.
+concurrency:
+  group: demo-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulate-long-job:
+    name: Long Running Task (Simulating 30s build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start Long Task
+        run: |
+          echo "========================================================"
+          echo "🚀 Task started at $(date)"
+          echo "Concurrency Group: demo-lock-${{ github.ref }}"
+          echo "Run Number: #${{ github.run_number }}"
+          echo "If you trigger this workflow again while this step sleeps,"
+          echo "GitHub Actions will immediately CANCEL this run!"
+          echo "========================================================"
+
+      - name: Sleep for 30 seconds
+        run: |
+          for i in {1..30}; do
+            echo "Working... ($i/30s)"
+            sleep 1
+          done
+
+      - name: Complete Task
+        run: echo "✅ Task completed successfully without being cancelled!"
