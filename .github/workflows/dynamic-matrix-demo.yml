@@ -1,0 +1,54 @@
+name: Dynamic Matrix Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: "Choose test scope to dynamically generate matrix"
+        required: true
+        default: "quick"
+        type: choice
+        options:
+          - "quick"
+          - "full"
+
+jobs:
+  # ── Job 1: Generator ────────────────────────────────────────────────────────
+  # Computes and outputs a dynamic JSON array for the next job's matrix
+  generate-matrix:
+    name: Generate Matrix Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      node-matrix: ${{ steps.build-matrix.outputs.matrix }}
+
+    steps:
+      - name: Compute Matrix JSON dynamically
+        id: build-matrix
+        run: |
+          echo "Selected scope: ${{ inputs.test_scope }}"
+          if [ "${{ inputs.test_scope }}" = "quick" ]; then
+            # Test only LTS Node
+            JSON_ARRAY='["20"]'
+          else
+            # Test full matrix across multiple versions
+            JSON_ARRAY='["20", "22", "24"]'
+          fi
+
+          echo "Generated JSON: $JSON_ARRAY"
+          echo "matrix=$JSON_ARRAY" >> "$GITHUB_OUTPUT"
+
+  # ── Job 2: Consumer ─────────────────────────────────────────────────────────
+  # Uses fromJSON() to parse the output from Job 1 into an active matrix
+  run-matrix:
+    name: "Test / Node ${{ matrix.node-version }}"
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ${{ fromJSON(needs.generate-matrix.outputs.node-matrix) }}
+
+    steps:
+      - name: Show Matrix Execution
+        run: |
+          echo "🚀 Running dynamic job on Node ${{ matrix.node-version }}!"
+          echo "This matrix was generated dynamically at runtime via fromJSON()."
