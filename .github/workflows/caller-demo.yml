@@ -1,0 +1,39 @@
+name: Caller Workflow Demo
+
+# Trigger manually to see the reusable workflow in action
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Select environment to test"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  # ── Calling the Reusable Workflow ──────────────────────────────────────────
+  # LEVEL 17: Instead of defining 'steps', a caller job uses 'uses:' to invoke
+  # another workflow like calling a function with arguments!
+  call-deploy:
+    name: Call Reusable Deploy
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment-name: ${{ inputs.target }}
+      target-url: "https://${{ inputs.target }}.learning-api.example.com"
+      deploy-message: "Triggered from Caller Demo workflow"
+    # Pass repository secrets into the called workflow (or 'inherit' to pass all)
+    secrets: inherit
+
+  # ── Consuming the Reusable Workflow's Outputs ──────────────────────────────
+  post-deploy-summary:
+    name: Post Deploy Summary
+    runs-on: ubuntu-latest
+    needs: call-deploy
+    steps:
+      - name: Show Result
+        run: |
+          echo "Reusable workflow finished!"
+          echo "Status output from reusable workflow: ${{ needs.call-deploy.outputs.deployment-status }}"

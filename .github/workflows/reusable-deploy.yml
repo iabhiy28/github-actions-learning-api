@@ -1,0 +1,67 @@
+name: Reusable Deploy Workflow
+
+# LEVEL 17: workflow_call event turns this workflow into a callable function/template
+on:
+  workflow_call:
+    inputs:
+      environment-name:
+        description: "The deployment environment target (staging, production, etc.)"
+        required: true
+        type: string
+      target-url:
+        description: "URL of the target deployment"
+        required: true
+        type: string
+      deploy-message:
+        description: "Optional custom deployment message"
+        required: false
+        type: string
+        default: "Automated deployment via reusable workflow"
+    outputs:
+      deployment-status:
+        description: "The status result of the deployment"
+        value: ${{ jobs.deploy.outputs.status }}
+    secrets:
+      DEPLOY_KEY:
+        description: "Optional deployment API key or SSH key"
+        required: false
+
+jobs:
+  deploy:
+    name: "Deploy to ${{ inputs.environment-name }}"
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment-name }}
+      url: ${{ inputs.target-url }}
+
+    outputs:
+      status: ${{ steps.record-status.outputs.status }}
+
+    steps:
+      - name: Display Reusable Workflow Parameters
+        run: |
+          echo "================================================="
+          echo "📦 REUSABLE WORKFLOW EXECUTING"
+          echo "Environment : ${{ inputs.environment-name }}"
+          echo "Target URL  : ${{ inputs.target-url }}"
+          echo "Message     : ${{ inputs.deploy-message }}"
+          echo "Caller Run  : #${{ github.run_number }}"
+          echo "================================================="
+
+      - name: Check secret availability
+        run: |
+          if [ -n "${{ secrets.DEPLOY_KEY }}" ]; then
+            echo "🔐 Deployment key was passed to reusable workflow"
+          else
+            echo "ℹ️ No deployment key supplied; proceeding with default auth"
+          fi
+
+      - name: Simulate deployment step
+        run: |
+          echo "Deploying to ${{ inputs.environment-name }}..."
+          sleep 1
+          echo "✅ Deployment finished successfully!"
+
+      - name: Set output variable
+        id: record-status
+        run: echo "status=success" >> "$GITHUB_OUTPUT"
