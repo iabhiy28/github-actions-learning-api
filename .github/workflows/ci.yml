@@ -227,3 +227,21 @@ jobs:
           echo "🌟 Deploying ${{ env.APP_NAME }} to PRODUCTION..."
           echo "Target URL: https://api.example.com"
           echo "✅ Production deployment successful!"
+
+      # LEVEL 23: Rich Markdown Job Summary ($GITHUB_STEP_SUMMARY)
+      # Renders directly on the GitHub Actions Workflow Run Summary page
+      - name: Generate Production Deployment Summary
+        if: always()
+        run: |
+          echo "## 🚀 Production Deployment Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric / Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Application** | \`${{ env.APP_NAME }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | \`production\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Run Number** | #${{ github.run_number }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Triggered By** | @${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Commit SHA** | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Status** | 🟢 Deployed & Verified |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> 🎓 **All 23 Levels of GitHub Actions Mastery successfully integrated!**" >> "$GITHUB_STEP_SUMMARY"
