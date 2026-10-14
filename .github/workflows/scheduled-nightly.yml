@@ -1,0 +1,65 @@
+name: Scheduled Nightly Health Check
+
+# LEVEL 21: Automated schedules & manual dispatch triggers
+on:
+  # Cron Schedule: Runs every day at 02:00 UTC (Nightly CI/Audit)
+  # Syntax: min (0-59) hour (0-23) day-of-month (1-31) month (1-12) day-of-week (0-6, 0=Sun)
+  schedule:
+    - cron: "0 2 * * *"
+
+  # Manual Trigger: Allows testing the scheduled job anytime from the GitHub UI
+  workflow_dispatch:
+    inputs:
+      notify_channel:
+        description: "Notification target"
+        required: true
+        default: "slack"
+        type: choice
+        options:
+          - "slack"
+          - "discord"
+          - "email"
+      run_full_audit:
+        description: "Run deep npm security audit?"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  nightly-check:
+    name: Nightly Maintenance & Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: npm test
+
+      - name: Run Security Audit (Conditional)
+        if: github.event_name == 'schedule' || inputs.run_full_audit == true
+        run: |
+          echo "Running npm audit for security vulnerabilities..."
+          npm audit || echo "Audit complete (warnings reported)"
+
+      - name: Report Trigger Details
+        run: |
+          echo "============================================="
+          echo "Workflow Event Type : ${{ github.event_name }}"
+          echo "Triggered At (UTC)  : $(date -u)"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manually triggered with Channel: ${{ inputs.notify_channel }}"
+          else
+            echo "Triggered by automated cron schedule!"
+          fi
+          echo "============================================="
