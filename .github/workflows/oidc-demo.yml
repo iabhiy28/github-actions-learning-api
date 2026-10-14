@@ -1,0 +1,54 @@
+name: OIDC & Cloud Security Demo
+
+# Trigger manually to inspect OIDC token workflow architecture
+on:
+  workflow_dispatch:
+
+# LEVEL 22: 'id-token: write' is MANDATORY for OpenID Connect (OIDC)
+# It permits the runner to fetch a signed JWT token from GitHub's OIDC provider.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  oidc-auth-demo:
+    name: Passwordless Cloud Auth (OIDC)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Explain OIDC Architecture
+        run: |
+          echo "=========================================================="
+          echo "🔐 OIDC: Keyless / Passwordless Cloud Authentication"
+          echo "=========================================================="
+          echo "1. No AWS/GCP access keys or secret keys stored in Secrets!"
+          echo "2. GitHub generates a cryptographic JWT with claims:"
+          echo "   - Repository: ${{ github.repository }}"
+          echo "   - Ref:        ${{ github.ref }}"
+          echo "   - Actor:      ${{ github.actor }}"
+          echo "3. Cloud Provider (AWS STS / Google Workload Identity) verifies"
+          echo "   GitHub's digital signature and checks the IAM Trust Policy."
+          echo "4. Cloud returns temporary credentials valid for only 1 hour!"
+          echo "=========================================================="
+
+      - name: Inspect OIDC Environment Variables
+        run: |
+          echo "GitHub OIDC Token URL: $ACTIONS_ID_TOKEN_REQUEST_URL"
+          echo "OIDC Token Request Token present: $([ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ] && echo 'YES ✅' || echo 'NO ❌')"
+
+      # In real AWS production, you would run:
+      # - name: Assume AWS IAM Role via OIDC
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsDeploymentRole
+      #     aws-region: us-east-1
+      #
+      # In real GCP production, you would run:
+      # - name: Authenticate to Google Cloud via OIDC
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-provider'
+      #     service_account: 'my-service-account@my-project.iam.gserviceaccount.com'
